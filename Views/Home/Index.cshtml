@@ -1,0 +1,35 @@
+﻿@model IEnumerable<PrototypeControlStem.Models.Prototype>
+
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+@foreach (var prototype in Model)
+{
+  <div class="d-flex justify-content-center">
+    <div class="card border-dark text-center mb-3" style="max-width: 30rem;">
+      <div class="row g-0">
+        <div class="col-md-4">
+          @if (prototype.NamePrototype == "Carro")
+            {
+                <img src="~/img/Chassi_II.png" class="img-fluid rounded-start" alt="Carrinho" style="max-width: 50%;">
+            }
+            else if (prototype.NamePrototype == "Manipulador")
+            {
+                <img src="~/img/Robot_Arm_III.png" class="img-fluid rounded-start" alt="Braço Robótico">
+            }
+            else
+            {
+                <img src="~/img/Hollow_knight.png" class="img-fluid rounded-start" alt="Casa Automática" style="max-width: 50%;">
+            }     
+        </div>
+        <div class="col-md-8">
+          <div class="card-body">
+            <h5 class="card-title">@Html.DisplayFor(modelItem => prototype.NamePrototype)</h5>
+            <a class="btn btn-outline-danger" asp-controller="Home" asp-action="@prototype.NamePrototype" asp-route-id="@prototype.CodPrototype">@Html.DisplayFor(modelItem => prototype.CodPrototype)</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

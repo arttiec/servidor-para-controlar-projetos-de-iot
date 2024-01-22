@@ -1,0 +1,107 @@
+@{
+    ViewData["Title"] = "Manipulator";
+    var topic = ViewData["topic"] as string;
+}
+
+<div class="d-flex justify-content-center">
+    <div class="card w-50">
+        <h5 class="card-header">Manipulador - @ViewData["topic"]</h5>
+        <div class="card-body">
+            <label for="customRange1" class="form-label">Base</label>
+            <input type="range" class="form-range" min="0" max="180" step="1" id="customRange1">
+
+            <label for="customRange2" class="form-label">Braço</label>
+            <input type="range" class="form-range" min="0" max="180" step="1" id="customRange2">
+
+            <label for="customRange3" class="form-label">Antibraço</label>
+            <input type="range" class="form-range" min="0" max="180" step="1" id="customRange3">
+
+            <label for="customRange4" class="form-label">Punho</label>
+            <input type="range" class="form-range" min="0" max="180" step="1" id="customRange4">
+
+            <button type="button" class="btn btn-outline-danger" id="garra">Garra</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+<script>
+    var brokerAddress = "ip-da-maquina";
+    var port = 8884;
+    var clientId = "Client" + "@topic";
+    var topic = "stem/prototipos/" + "@topic";
+
+    var sslOptions = {
+        useSSL: false,
+        timeout: 3,
+        mqttVersion: 4,
+        onSuccess: onConnect,
+        onFailure: onFailure
+    };
+
+    var client = new Paho.MQTT.Client(brokerAddress, port, clientId);
+
+    client.onConnectionLost = onConnectionLost;
+
+    client.connect(sslOptions);
+
+    function onConnect() {
+        console.log("Conectado ao broker MQTT com sucesso");
+    }
+
+    function onFailure(err) {
+        console.error("Erro na conexão MQTT: " + err.errorMessage);
+    }
+
+    function onConnectionLost(responseObject) {
+        if (responseObject.errorCode !== 0) {
+            console.error("Conexão MQTT perdida: " + responseObject.errorMessage);
+        }
+    }
+
+    function sendMessage(message) {
+        var msg = new Paho.MQTT.Message(message); // Converte o objeto em JSON
+        msg.destinationName = topic;
+        msg.qos = 0;
+
+        client.send(msg);
+    }
+    
+    var inputData = {
+        "Base": 0,
+        "Braço": 0,
+        "Antibraço": 0,
+        "Punho": 0,
+        "Garra": 0
+    };
+
+    function toggleButtonState() {
+        inputData["Garra"] = 1 - inputData["Garra"];
+        var jsonData = JSON.stringify({ "Parte": 4, "Posicao": inputData["Garra"] });
+        console.log(jsonData);
+        sendMessage(jsonData);
+    }
+
+    function updateAndSendInputValue(inputId) {
+        var inputElement = document.getElementById(inputId);
+        var labelElement = document.querySelector("label[for=" + inputId + "]");
+
+        if (labelElement.innerHTML !== "Garra") {
+            var parte = { "Base": 0, "Braço": 1, "Antibraço": 2, "Punho": 3 }[labelElement.innerHTML];
+            inputData[labelElement.innerHTML] = parseFloat(inputElement.value);
+            var jsonData = JSON.stringify({ "Parte": parte, "Posicao": inputData[labelElement.innerHTML] });
+            console.log(jsonData);
+            sendMessage(jsonData);
+        }
+    }
+
+    document.querySelectorAll(".form-range").forEach(function(inputElement) {
+        inputElement.addEventListener("input", function() {
+            updateAndSendInputValue(inputElement.id);
+        });
+    });
+
+    document.getElementById("garra").addEventListener("click", toggleButtonState);
+</script>

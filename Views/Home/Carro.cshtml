@@ -1,0 +1,126 @@
+@{
+    ViewData["Title"] = "Car";
+    var topic = ViewData["topic"] as string;
+}
+
+<div class="d-flex justify-content-center">
+    <div class="card w-50">
+        <h5 class="card-header">Carro - @ViewData["topic"]</h5>
+        <div class="card-body">
+            <div id="joyDiv" style="width:200px;height:200px;margin-bottom:20px;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/joy.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+<script>
+    var Joy1 = new JoyStick('joyDiv', {}, function(stickData) {
+        joy1IinputPosX.value = stickData.xPosition;
+        joy1InputPosY.value = stickData.yPosition;
+        joy1Direzione.value = stickData.cardinalDirection;
+        joy1X.value = stickData.x;
+        joy1Y.value = stickData.y;
+    });
+
+    var brokerAddress = "ip-da-maquina";
+    var port = 8884;
+    var clientId = "@topic";
+    var topic = "@topic";
+    var username = "prototype";
+    var password = "Stemprototypes2023";
+
+    var sslOptions = {
+        useSSL: true,
+        timeout: 3,
+        mqttVersion: 4,
+        onSuccess: onConnect,
+        onFailure: onFailure,
+        userName: username,
+        password: password
+    };
+
+    var client = new Paho.MQTT.Client(brokerAddress, port, clientId);
+
+    client.onConnectionLost = onConnectionLost;
+
+    client.connect(sslOptions);
+
+    function onConnect() {
+        console.log("Conectado ao broker MQTT com sucesso");
+    }
+
+    function onFailure(err) {
+        console.error("Erro na conexão MQTT: " + err.errorMessage);
+    }
+
+    function onConnectionLost(responseObject) {
+        if (responseObject.errorCode !== 0) {
+            console.error("Conexão MQTT perdida: " + responseObject.errorMessage);
+        }
+    }
+
+    function sendMessage(message) { 
+        var message = new Paho.MQTT.Message(message);
+        message.destinationName = topic;
+        message.qos = 0;
+    
+        client.send(message);
+    }
+
+    const movement = {
+        acceleration: 0,
+        direction: 0
+    };
+
+    const keyMap = {
+        ArrowUp: 1,
+        ArrowRight: 1,
+        ArrowDown: -1,
+        ArrowLeft: -1
+    };
+
+    const pressedKeys = {};
+    const keyState = {};
+
+    function updateMovement() {
+        let acceleration = 0;
+        let direction = 0;
+
+        if ('ArrowUp' in pressedKeys) {
+            acceleration = 1;
+        } else if ('ArrowDown' in pressedKeys) {
+            acceleration = -1;
+        }
+
+        if ('ArrowRight' in pressedKeys) {
+            direction = 1;
+        } else if ('ArrowLeft' in pressedKeys) {
+            direction = -1;
+        }
+
+        movement.acceleration = acceleration;
+        movement.direction = direction;
+
+        sendMessage(JSON.stringify(movement));
+    }
+
+    window.addEventListener('keydown', (event) => {
+        if (event.key in keyMap && !keyState[event.key]) {
+            keyState[event.key] = true;
+            pressedKeys[event.key] = true;
+            updateMovement();
+            console.log(JSON.stringify(movement));
+        }
+    });
+
+    window.addEventListener('keyup', (event) => {
+        if (event.key in keyMap) {
+            keyState[event.key] = false;
+            delete pressedKeys[event.key];
+            updateMovement();
+            console.log(JSON.stringify(movement));
+        }
+    });
+
+</script>
